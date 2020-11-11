@@ -1,12 +1,11 @@
+import json
 import os
 import re
-import json
 
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-
 from konlpy.tag import Okt
+from tqdm import tqdm
 
 filters = "([~.,!?\"':;])(])"
 pad = "<PAD>"   # 어떤 의미도 없는 패딩 토큰
@@ -69,6 +68,7 @@ def load_vocabulary(path, vocab_path, tokenize_as_morph=False):
         with open(vocab_path , 'w', encoding = 'utf-8') as vocabulary_file:
             for word in words:
                 vocabulary_file.write(word + '\n')
+
     with open(vocab_path, 'r', encoding = 'utf-8') as vocabulary_file:
         for line in vocabulary_file:
             vocabulary_list.append(line.strip())
@@ -80,7 +80,7 @@ def load_vocabulary(path, vocab_path, tokenize_as_morph=False):
 def make_vocabulary(vocabulary_list):
     word2idx = {word: idx for idx, word in enumerate(vocabulary_list)}
 
-    idx2word = {idx: char for idx, char in enumerate(vocabulary_list)}
+    idx2word = {idx: word for idx, word in enumerate(vocabulary_list)}
 
     return word2idx, idx2word
 
@@ -100,6 +100,7 @@ def enc_processing(value, dictionary, tokenize_as_morph=False):
 
             else:
                 sequence_idx.extend([dictionary[unk]])
+                
         if  len(sequence_idx) > max_sequence:
             sequence_idx = sequence_idx[:max_sequence]
 
@@ -141,11 +142,14 @@ def dec_target_processing(value, dictionary, tokenize_as_morph=False):
     for sequence in value:
         sequence = re.sub(change_filter,"", sequence)
         sequence_idx = [dictionary[word] if word in dictionary else dictionary[unk] for word in sequence.split()]
+        
         if len(sequence_idx) >= max_sequence:
-            sequnce_idx = sequence_idx[:max_sequence - 1] + [dictionary[end]]
+            sequence_idx = sequence_idx[:max_sequence - 1] + [dictionary[end]]
         
         else:
-            sequence_idx += (max_sequence - len(sequence_idx)) * [dictionary[pad]]
+            sequence_idx += [dictionary[end]]
 
-            sequence_target_index.append(sequence_idx)
+        sequence_idx += (max_sequence - len(sequence_idx)) * [dictionary[pad]]
+
+        sequence_target_index.append(sequence_idx)
     return np.asarray(sequence_target_index)
